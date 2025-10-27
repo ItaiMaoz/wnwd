@@ -4,14 +4,18 @@ Automated shipment report generation system that aggregates data from TMS (custo
 
 ## Features
 
-- **CSV-based batch processing**: Read shipment IDs from CSV input, generate enriched CSV output
+### Core Analysis Engine
 - **Multi-source data aggregation**: Combines TMS shipment data with Windward tracking information
 - **AI-powered delay analysis**: OpenAI-based classification of weather-related delays with keyword fallback
 - **Weather enrichment**: Real-time historical weather data from Open-Meteo API for weather-related delays
 - **Comprehensive error tracking**: All shipments included in output with error details for failed lookups
 - **Intelligent retry logic**: Exponential backoff with jitter for transient API failures
 - **Extensible architecture**: Dependency injection with swappable adapters for different data sources
-- **Dual output formats**: Both CSV (for viewing) and JSON (for programmatic use)
+
+### Interfaces
+- **Web UI**: Modern Next.js 16 interface with Airtable-style design, real-time analysis, and interactive data table
+- **CLI**: CSV-based batch processing for automated workflows
+- **REST API**: Express server exposing shipment analysis endpoints for programmatic access
 
 ## Prerequisites
 
@@ -33,9 +37,38 @@ See [Configuration](#configuration) for all available environment variables.
 
 ## Usage
 
-### Input Setup
+### Web UI (Recommended)
 
-Create an input CSV file at `data/input-shipments.csv` with shipment IDs to process:
+The easiest way to use the system is through the web interface:
+
+```bash
+# Start the Express API server (runs on port 3001)
+npm run api
+
+# In another terminal, start the Next.js web UI
+cd web
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to access the web interface.
+
+**Web UI Features:**
+- **Inline Analysis**: Add shipment IDs directly in the table or paste multiple IDs at once
+- **Local Storage**: Automatically saves and loads your shipment analysis between sessions
+- **Real-time Updates**: Instant analysis results as you add shipments
+- **CSV Export**: Download results for external use
+- **Search & Filter**: Quickly find specific shipments
+- **Remove Shipments**: Clean up unwanted entries from the table
+- **Error Display**: Clear visual indicators for failed lookups
+
+See [web/README.md](web/README.md) for more details.
+
+### CLI (Batch Processing)
+
+For automated workflows, use the CLI interface:
+
+**Input Setup** - Create `data/input-shipments.csv`:
 
 ```csv
 shipmentId
@@ -44,7 +77,7 @@ TMS0002
 TMS0003
 ```
 
-### Build and Run
+**Run Analysis:**
 
 ```bash
 # Build the TypeScript project
@@ -54,7 +87,7 @@ npm run build
 npm start
 ```
 
-### Development Mode
+**Development Mode:**
 
 ```bash
 # Run directly with ts-node (no build step)
@@ -154,6 +187,15 @@ export RETRY_JITTER_FACTOR=0.1           # Default: 0.1
 
 ## Architecture
 
+### System Components
+
+The application consists of three main interfaces sharing a common core:
+
+1. **Core Analysis Engine** (`src/`): Shared business logic and adapters
+2. **Express API Server** (`src/api-server.ts`): REST endpoints for web UI
+3. **Next.js Web UI** (`web/`): Modern interface for interactive analysis
+4. **CLI** (`src/index.ts`): Batch processing from CSV files
+
 ### Dependency Injection
 
 The application uses `tsyringe` for dependency injection. All components are registered in `src/config/di.setup.ts`:
@@ -162,6 +204,8 @@ The application uses `tsyringe` for dependency injection. All components are reg
 setupDI(config);
 const generator = container.resolve(ReportGeneratorService);
 ```
+
+Both the CLI and API server use the same DI setup, ensuring consistent behavior.
 
 ### Adapters
 
@@ -270,13 +314,25 @@ src/
 │   └── keyword-delay-analyzer.service.ts # Keyword-based fallback
 ├── utils/                              # Shared utilities
 │   └── retry.util.ts                  # Exponential backoff with jitter
-└── config/                             # Configuration and DI
-    ├── app.config.ts                  # Environment-based config
-    └── di.setup.ts                    # Dependency injection setup
+├── config/                             # Configuration and DI
+│   ├── app.config.ts                  # Environment-based config
+│   └── di.setup.ts                    # Dependency injection setup
+├── api-server.ts                       # Express REST API server
+├── web-api.ts                          # CLI-based analysis entry point
+└── index.ts                            # Main CLI entry point
+
+web/                                    # Next.js Web UI
+├── app/
+│   ├── api/analyze/route.ts           # API proxy to Express server
+│   ├── page.tsx                       # Main UI component
+│   └── layout.tsx                     # App layout
+├── components/ui/                     # shadcn/ui components
+├── src → ../src/                      # Symlink to core source
+└── data → ../data/                    # Symlink to data files
 
 data/
-├── input-shipments.csv                # Input: Shipment IDs to process
-└── output-shipments.csv               # Output: Enriched analysis results
+├── input-shipments.csv                # Input: Shipment IDs to process (CLI)
+└── output-shipments.csv               # Output: Enriched analysis results (CLI)
 ```
 
 ### Running Tests
@@ -304,15 +360,36 @@ Sample data files are located in:
 - `context/windward-data.json`: 5 matching Windward tracked shipments
 - `data/input-shipments.csv`: Example input CSV with 10 shipment IDs (5 valid, 5 invalid for error testing)
 
+## API Server
+
+The Express API server provides programmatic access to the shipment analysis service:
+
+```bash
+# Start the API server (port 3001)
+npm run api
+```
+
+**Endpoints:**
+
+- `POST /api/shipments/analyze` - Analyze shipment IDs
+  ```json
+  {
+    "shipmentIds": ["TMS0001", "TMS0002"]
+  }
+  ```
+
+- `GET /health` - Health check endpoint
+
+The web UI uses this API internally, but it can also be accessed directly for integrations.
+
 ## Future Enhancements
 
 - Additional customer and tracking adapters (SAP, Oracle TMS, etc.)
 - Alternative AI providers (Anthropic Claude, local models)
 - Real-time tracking updates (webhooks, polling)
-- REST API endpoints for programmatic access
-- Web UI for interactive report viewing and filtering
 - Advanced analytics (delay trends, carrier performance)
 - Notification system (email, Slack alerts for critical delays)
+- Authentication and multi-user support for web UI
 
 ## License
 
