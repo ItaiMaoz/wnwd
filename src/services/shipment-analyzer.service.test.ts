@@ -35,7 +35,8 @@ describe('ShipmentAnalyzerService - Integration Tests', () => {
       mockShipmentAdapter,
       mockTrackingAdapter,
       mockWeatherProvider,
-      mockDelayAnalyzer
+      mockDelayAnalyzer,
+      5 // Default batch size
     );
   });
 
@@ -939,6 +940,234 @@ describe('ShipmentAnalyzerService - Integration Tests', () => {
       expect(result.records).toHaveLength(1);
       expect(result.errors).toHaveLength(0);
       expect(result.records[0].temperature).toBe(18.5); // Weather was fetched
+    });
+  });
+
+  describe('Parallel Batch Processing', () => {
+    // Test: Process large number of shipments in batches
+    it('should process multiple shipments in parallel batches', async () => {
+      // Arrange: Create 12 shipments (batch size is 5, so 3 batches)
+      const shipmentIds = Array.from({ length: 12 }, (_, i) => `SGL_BATCH_${i + 1}`);
+
+      // Mock all shipments to return successfully
+      for (let i = 0; i < 12; i++) {
+        const shipment: Shipment = {
+          shipmentId: shipmentIds[i],
+          customerName: `Customer ${i + 1}`,
+          shipperName: `Shipper ${i + 1}`,
+          containers: [{ containerNumber: `CONT_${i + 1}` }]
+        };
+
+        const tracking: Tracking = {
+          containerNumber: `CONT_${i + 1}`,
+          scac: 'TEST',
+          estimatedArrival: new Date('2025-07-16T03:00:00Z'),
+          delayReasons: []
+        };
+
+        mockShipmentAdapter.getShipmentById.mockResolvedValueOnce({
+          success: true,
+          data: shipment,
+          message: 'Shipment found'
+        });
+
+        mockTrackingAdapter.getTrackingByContainer.mockResolvedValueOnce({
+          success: true,
+          data: tracking,
+          message: 'Tracking found'
+        });
+      }
+
+      // Act
+      const result = await analyzer.analyzeShipments(shipmentIds);
+
+      // Assert: All 12 shipments processed
+      expect(result.records).toHaveLength(12);
+      expect(result.errors).toHaveLength(0);
+
+      // Verify all shipments were fetched
+      expect(mockShipmentAdapter.getShipmentById).toHaveBeenCalledTimes(12);
+      expect(mockTrackingAdapter.getTrackingByContainer).toHaveBeenCalledTimes(12);
+
+      // Verify each record
+      for (let i = 0; i < 12; i++) {
+        expect(result.records[i].sglShipmentNo).toBe(`SGL_BATCH_${i + 1}`);
+        expect(result.records[i].customerName).toBe(`Customer ${i + 1}`);
+        expect(result.records[i].containerNumber).toBe(`CONT_${i + 1}`);
+      }
+    });
+
+    // Test: Batch processing with mixed success/failure
+    it('should handle failures in parallel batches gracefully', async () => {
+      // Arrange: 7 shipments (batch size 5 = 2 batches), some fail
+      const shipmentIds = ['SUCCESS1', 'FAIL1', 'SUCCESS2', 'FAIL2', 'SUCCESS3', 'SUCCESS4', 'SUCCESS5'];
+
+      // Setup mocks in the order they'll be called (batch 1: first 5 in parallel, batch 2: last 2 in parallel)
+      // Batch 1: SUCCESS1, FAIL1, SUCCESS2, FAIL2, SUCCESS3 (parallel, order may vary)
+      // Batch 2: SUCCESS4, SUCCESS5 (parallel, order may vary)
+
+      // We need to set up mocks for all IDs regardless of parallel execution order
+      // SUCCESS1
+      mockShipmentAdapter.getShipmentById.mockImplementation((id: string) => {
+        if (id === 'SUCCESS1' || id === 'SUCCESS2' || id === 'SUCCESS3' || id === 'SUCCESS4' || id === 'SUCCESS5') {
+          return Promise.resolve({
+            success: true,
+            data: {
+              shipmentId: id,
+              customerName: 'Test Corp',
+              shipperName: 'Test Shipper',
+              containers: [{ containerNumber: `${id}_CONT` }]
+            },
+            message: 'Shipment found'
+          });
+        } else if (id === 'FAIL1') {
+          return Promise.resolve({
+            success: false,
+            message: 'Error: Database connection failed'
+          });
+        } else if (id === 'FAIL2') {
+          return Promise.resolve({
+            success: true,
+            message: 'Shipment not found'
+          });
+        }
+        return Promise.resolve({ success: false, message: 'Unknown ID' });
+      });
+
+      mockTrackingAdapter.getTrackingByContainer.mockImplementation((containerNumber: string) => {
+        return Promise.resolve({
+          success: true,
+          data: {
+            containerNumber,
+            scac: 'TEST',
+            estimatedArrival: new Date('2025-07-16T03:00:00Z'),
+            delayReasons: []
+          },
+          message: 'Tracking found'
+        });
+      });
+
+      // Act
+      const result = await analyzer.analyzeShipments(shipmentIds);
+
+      // Assert: 7 records (5 success + 2 error placeholders), 2 errors
+      expect(result.records).toHaveLength(7);
+      expect(result.errors).toHaveLength(2);
+
+      // Verify error records exist (order may vary due to parallel processing)
+      const errorRecords = result.records.filter(r => r.sglShipmentNo === 'FAIL1' || r.sglShipmentNo === 'FAIL2');
+      expect(errorRecords).toHaveLength(2);
+      expect(errorRecords.every(r => r.customerName === '')).toBe(true);
+
+      // Verify error entries exist
+      const fail1Error = result.errors.find(e => e.containerNumber === 'FAIL1');
+      const fail2Error = result.errors.find(e => e.containerNumber === 'FAIL2');
+
+      expect(fail1Error).toBeDefined();
+      expect(fail1Error?.errorType).toBe('SHIPMENT_FETCH_ERROR');
+      expect(fail2Error).toBeDefined();
+      expect(fail2Error?.errorType).toBe('SHIPMENT_NOT_FOUND');
+    });
+
+    // Test: Verify batch size is respected
+    it('should process shipments with custom batch size', async () => {
+      // Arrange: Create analyzer with batch size 2
+      const customAnalyzer = new ShipmentAnalyzerService(
+        mockShipmentAdapter,
+        mockTrackingAdapter,
+        mockWeatherProvider,
+        mockDelayAnalyzer,
+        2 // Custom batch size
+      );
+
+      const shipmentIds = ['SGL1', 'SGL2', 'SGL3'];
+
+      for (const id of shipmentIds) {
+        mockShipmentAdapter.getShipmentById.mockResolvedValueOnce({
+          success: true,
+          data: {
+            shipmentId: id,
+            customerName: 'Test Corp',
+            shipperName: 'Test Shipper',
+            containers: [{ containerNumber: `${id}_CONT` }]
+          },
+          message: 'Shipment found'
+        });
+
+        mockTrackingAdapter.getTrackingByContainer.mockResolvedValueOnce({
+          success: true,
+          data: {
+            containerNumber: `${id}_CONT`,
+            scac: 'TEST',
+            estimatedArrival: new Date('2025-07-16T03:00:00Z'),
+            delayReasons: []
+          },
+          message: 'Tracking found'
+        });
+      }
+
+      // Act
+      const result = await customAnalyzer.analyzeShipments(shipmentIds);
+
+      // Assert: All 3 processed successfully
+      expect(result.records).toHaveLength(3);
+      expect(result.errors).toHaveLength(0);
+      expect(result.records[0].sglShipmentNo).toBe('SGL1');
+      expect(result.records[1].sglShipmentNo).toBe('SGL2');
+      expect(result.records[2].sglShipmentNo).toBe('SGL3');
+    });
+
+    // Test: Parallel container processing within shipments
+    it('should process multiple containers within a shipment in parallel', async () => {
+      // Arrange: One shipment with 3 containers
+      const shipment: Shipment = {
+        shipmentId: 'SGL_MULTI',
+        customerName: 'Multi Container Corp',
+        shipperName: 'Multi Shipper',
+        containers: [
+          { containerNumber: 'CONT_A' },
+          { containerNumber: 'CONT_B' },
+          { containerNumber: 'CONT_C' }
+        ]
+      };
+
+      mockShipmentAdapter.getShipmentById.mockResolvedValue({
+        success: true,
+        data: shipment,
+        message: 'Shipment found'
+      });
+
+      // All containers have tracking
+      for (const container of shipment.containers) {
+        mockTrackingAdapter.getTrackingByContainer.mockResolvedValueOnce({
+          success: true,
+          data: {
+            containerNumber: container.containerNumber,
+            scac: 'TEST',
+            estimatedArrival: new Date('2025-07-16T03:00:00Z'),
+            delayReasons: []
+          },
+          message: 'Tracking found'
+        });
+      }
+
+      // Act
+      const result = await analyzer.analyzeShipments(['SGL_MULTI']);
+
+      // Assert: 3 records for 3 containers
+      expect(result.records).toHaveLength(3);
+      expect(result.errors).toHaveLength(0);
+
+      expect(result.records[0].containerNumber).toBe('CONT_A');
+      expect(result.records[1].containerNumber).toBe('CONT_B');
+      expect(result.records[2].containerNumber).toBe('CONT_C');
+
+      // All should have same shipment info
+      result.records.forEach(record => {
+        expect(record.sglShipmentNo).toBe('SGL_MULTI');
+        expect(record.customerName).toBe('Multi Container Corp');
+        expect(record.shipperName).toBe('Multi Shipper');
+      });
     });
   });
 });

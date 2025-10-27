@@ -19,6 +19,7 @@ describe('OpenMeteoWeatherProvider', () => {
         tmsPath: './context/tms-data.json',
         windwardPath: './context/windward-data.json'
       },
+      batchSize: 5,
       retry: {
         maxRetries: 3,
         baseDelay: 100,

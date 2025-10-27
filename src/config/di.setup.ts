@@ -18,6 +18,7 @@ export function setupDI(config: AppConfig): void {
   // Register configuration values
   container.register('TMSDataPath', { useValue: config.data.tmsPath });
   container.register('WindwardDataPath', { useValue: config.data.windwardPath });
+  container.register('BatchSize', { useValue: config.batchSize });
   container.register('AppConfig', { useValue: config });
 
   // Register adapters

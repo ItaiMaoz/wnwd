@@ -176,6 +176,9 @@ export OPENAI_MAX_TOKENS=150             # Default: 150
 export TMS_DATA_PATH=./context/tms-data.json
 export WINDWARD_DATA_PATH=./context/windward-data.json
 
+# Optional: Parallel processing configuration
+export BATCH_SIZE=5                      # Default: 5 (range: 1-50)
+
 # Optional: Retry configuration
 export RETRY_MAX_ATTEMPTS=3              # Default: 3
 export RETRY_BASE_DELAY_MS=1000          # Default: 1000
