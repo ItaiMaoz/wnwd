@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +34,7 @@ import {
   XCircle,
   Loader2,
   LayoutGrid,
+  Trash2,
 } from "lucide-react";
 
 interface ShipmentAnalysisRecord {
@@ -59,32 +60,44 @@ interface AnalysisResult {
   timestamp: string;
 }
 
+const CACHE_KEY = "shipment_analysis_cache";
+
 export default function Home() {
   const [shipmentIds, setShipmentIds] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<AnalysisResult>({
+    success: true,
+    records: [],
+    errors: [],
+    timestamp: new Date().toISOString(),
+  });
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [newShipmentId, setNewShipmentId] = useState("");
   const [analyzingNewId, setAnalyzingNewId] = useState(false);
 
-  const handleAnalyze = async () => {
+  // Load cached shipment IDs on mount
+  useEffect(() => {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const cachedData = JSON.parse(cached);
+        const cachedIds = cachedData.shipmentIds || [];
+        if (cachedIds.length > 0) {
+          // Auto-analyze cached IDs
+          analyzeShipmentIds(cachedIds);
+        }
+      } catch (e) {
+        // Ignore cache errors
+      }
+    }
+  }, []);
+
+  const analyzeShipmentIds = async (ids: string[]) => {
     setLoading(true);
     setError(null);
-    setResult(null);
 
     try {
-      const ids = shipmentIds
-        .split(/[\n,]/)
-        .map((id) => id.trim())
-        .filter((id) => id.length > 0);
-
-      if (ids.length === 0) {
-        setError("Please enter at least one shipment ID");
-        setLoading(false);
-        return;
-      }
-
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: {
@@ -100,6 +113,9 @@ export default function Home() {
       }
 
       setResult(data);
+
+      // Cache the shipment IDs
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ shipmentIds: ids }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -107,18 +123,50 @@ export default function Home() {
     }
   };
 
-  const handleAddNewShipment = async (id: string) => {
-    if (!id.trim()) return;
+  const handleAnalyze = async () => {
+    const ids = shipmentIds
+      .split(/[\n,]/)
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+
+    if (ids.length === 0) {
+      setError("Please enter at least one shipment ID");
+      return;
+    }
+
+    await analyzeShipmentIds(ids);
+  };
+
+  const handleAddNewShipment = async (input: string) => {
+    if (!input.trim()) return;
+
+    // Parse multiple IDs (comma, newline, or space separated)
+    const parsedIds = input
+      .split(/[\n,\s]+/)
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+
+    if (parsedIds.length === 0) return;
+
+    // Remove duplicates and filter out IDs that already exist in the table
+    const existingIds = new Set(result?.records.map(r => r.sglShipmentNo) || []);
+    const ids = [...new Set(parsedIds)].filter(id => !existingIds.has(id));
+
+    if (ids.length === 0) {
+      setNewShipmentId("");
+      return; // All IDs already exist
+    }
 
     setAnalyzingNewId(true);
 
     try {
+      // Send all IDs as bulk request
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ shipmentIds: [id.trim()] }),
+        body: JSON.stringify({ shipmentIds: ids }),
       });
 
       const data = await response.json();
@@ -128,20 +176,41 @@ export default function Home() {
       }
 
       // Append new records to existing result
-      if (result) {
-        setResult({
-          ...result,
-          records: [...result.records, ...data.records],
-          errors: [...result.errors, ...data.errors],
-          timestamp: data.timestamp,
-        });
-      }
+      const updatedResult = {
+        ...result,
+        records: [...result.records, ...data.records],
+        errors: [...result.errors, ...data.errors],
+        timestamp: data.timestamp,
+      };
+      setResult(updatedResult);
+
+      // Update cache with all shipment IDs
+      const allIds = updatedResult.records.map(r => r.sglShipmentNo);
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ shipmentIds: allIds }));
 
       setNewShipmentId("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setAnalyzingNewId(false);
+    }
+  };
+
+  const handleRemoveShipment = (shipmentNo: string) => {
+    const updatedResult = {
+      ...result,
+      records: result.records.filter(r => r.sglShipmentNo !== shipmentNo),
+      errors: result.errors.filter(e => e.containerNumber !== shipmentNo),
+      timestamp: new Date().toISOString(),
+    };
+    setResult(updatedResult);
+
+    // Update cache (even if empty)
+    const allIds = updatedResult.records.map(r => r.sglShipmentNo);
+    if (allIds.length === 0) {
+      localStorage.removeItem(CACHE_KEY);
+    } else {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ shipmentIds: allIds }));
     }
   };
 
@@ -189,7 +258,7 @@ export default function Home() {
     a.click();
   };
 
-  const filteredRecords = result?.records.filter((record) => {
+  const filteredRecords = result.records.filter((record) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -278,8 +347,7 @@ export default function Home() {
       </header>
 
       {/* Toolbar - Airtable style */}
-      {result && (
-        <div className="border-b bg-background">
+      <div className="border-b bg-background">
           <div className="flex items-center justify-between px-6 py-3">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" className="gap-2">
@@ -303,68 +371,32 @@ export default function Home() {
               </div>
             </div>
             <div className="text-sm text-muted-foreground">
-              {filteredRecords?.length || 0} records
+              {filteredRecords.length} records
             </div>
           </div>
         </div>
-      )}
 
       {/* Main Content */}
       <main className="flex-1 p-6">
-        {!result ? (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <Card className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Analyze Shipments</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Enter shipment IDs (one per line or comma-separated) to analyze
-                  </p>
-                </div>
-                <Textarea
-                  placeholder="Enter shipment IDs...&#10;Example:&#10;SHIPMENT-001&#10;SHIPMENT-002&#10;SHIPMENT-003"
-                  value={shipmentIds}
-                  onChange={(e) => setShipmentIds(e.target.value)}
-                  rows={8}
-                  className="font-mono text-sm"
-                />
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                <Button
-                  onClick={handleAnalyze}
-                  disabled={loading || !shipmentIds.trim()}
-                  className="w-full"
-                  size="lg"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    "Analyze Shipments"
-                  )}
-                </Button>
-              </div>
-            </Card>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {result.errors.length > 0 && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {result.errors.length} error(s) occurred during analysis
-                </AlertDescription>
-              </Alert>
-            )}
+        <div className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            {/* Airtable-style Table */}
-            <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
+          {result.errors.length > 0 && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {result.errors.length} error(s) occurred during analysis
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Airtable-style Table */}
+          <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -381,6 +413,7 @@ export default function Home() {
                       <TableHead className="font-medium text-right">Temp (°C)</TableHead>
                       <TableHead className="font-medium text-right">Wind (m/s)</TableHead>
                       <TableHead className="font-medium min-w-[160px]">Weather Status</TableHead>
+                      <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -394,10 +427,10 @@ export default function Home() {
                           ))}
                         </TableRow>
                       ))
-                    ) : filteredRecords && filteredRecords.length > 0 ? (
+                    ) : (
                       <>
-                        {filteredRecords.map((record, index) => (
-                          <TableRow key={record.containerNumber} className="hover:bg-muted/50">
+                        {filteredRecords && filteredRecords.map((record, index) => (
+                          <TableRow key={`${record.containerNumber}-${index}`} className="hover:bg-muted/50">
                             <TableCell className="text-center text-muted-foreground font-mono text-sm">
                               {index + 1}
                             </TableCell>
@@ -428,14 +461,24 @@ export default function Home() {
                             <TableCell>
                               {getWeatherStatusBadge(record.weatherFetchStatus, !!record.delayReasons)}
                             </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleRemoveShipment(record.sglShipmentNo)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
-                        {/* Add new shipment row */}
+                        {/* Add new shipment row - always show */}
                         <TableRow className="bg-muted/20 hover:bg-muted/30">
                           <TableCell className="text-center text-muted-foreground font-mono text-sm">
                             {filteredRecords.length + 1}
                           </TableCell>
-                          <TableCell colSpan={11}>
+                          <TableCell colSpan={12}>
                             {analyzingNewId ? (
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -443,11 +486,24 @@ export default function Home() {
                               </div>
                             ) : (
                               <Input
-                                placeholder="Enter shipment ID to add..."
+                                placeholder="Enter shipment ID(s) to add (comma or space separated)..."
                                 value={newShipmentId}
                                 onChange={(e) => setNewShipmentId(e.target.value)}
+                                onPaste={(e) => {
+                                  e.preventDefault();
+                                  const pastedText = e.clipboardData.getData("text");
+                                  // Replace newlines with spaces
+                                  const cleaned = pastedText.replace(/\n/g, " ");
+                                  setNewShipmentId(cleaned);
+                                }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" && newShipmentId.trim()) {
+                                    e.preventDefault();
+                                    handleAddNewShipment(newShipmentId);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  if (newShipmentId.trim()) {
                                     handleAddNewShipment(newShipmentId);
                                   }
                                 }}
@@ -457,39 +513,19 @@ export default function Home() {
                           </TableCell>
                         </TableRow>
                       </>
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                          No records found
-                        </TableCell>
-                      </TableRow>
                     )}
                   </TableBody>
                 </Table>
               </div>
 
               {/* Summary Footer - Airtable style */}
-              {filteredRecords && filteredRecords.length > 0 && (
+              {filteredRecords.length > 0 && (
                 <div className="border-t bg-muted/30 px-6 py-3 text-sm font-medium text-muted-foreground">
                   {filteredRecords.length} records • Last updated: {formatDate(result.timestamp)}
                 </div>
               )}
             </div>
-
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setResult(null);
-                  setShipmentIds("");
-                  setSearchQuery("");
-                }}
-              >
-                New Analysis
-              </Button>
-            </div>
-          </div>
-        )}
+        </div>
       </main>
     </div>
   );
