@@ -1,5 +1,6 @@
 import { readFile } from 'fs/promises';
 import { inject, injectable } from 'tsyringe';
+import { z } from 'zod';
 import { Container, Shipment } from '../../types/domain.types';
 import { Result } from '../../types/result.types';
 import { IShipmentDataAdapter } from './shipment-adapter.interface';
@@ -24,6 +25,27 @@ interface TMSShipmentJSON {
     }>;
   };
 }
+
+// Zod schema for validating TMS shipment data
+const TMSShipmentSchema = z.object({
+  sgl: z.object({
+    header: z.object({
+      sglShipmentNo: z.string().min(1, 'Shipment number cannot be empty')
+    }),
+    parties: z.object({
+      customer: z.object({
+        name: z.string().min(1, 'Customer name cannot be empty')
+      }),
+      shipper: z.object({
+        name: z.string().min(1, 'Shipper name cannot be empty')
+      })
+    }),
+    containers: z.array(z.object({
+      containerNo: z.string().min(1, 'Container number cannot be empty'),
+      containerType: z.string()
+    }))
+  })
+});
 
 @injectable()
 export class TMSJsonAdapter implements IShipmentDataAdapter {
@@ -65,12 +87,26 @@ export class TMSJsonAdapter implements IShipmentDataAdapter {
       const tmsData: TMSShipmentJSON[] = JSON.parse(fileContent);
 
       this.shipmentsCache = new Map();
+      const validationErrors: string[] = [];
+
       for (const tmsShipment of tmsData) {
-        const shipment = this.mapToShipment(tmsShipment);
-        this.shipmentsCache.set(shipment.shipmentId, shipment);
+        try {
+          const shipment = this.mapToShipment(tmsShipment);
+          this.shipmentsCache.set(shipment.shipmentId, shipment);
+        } catch (error) {
+          // Log but don't fail entire load - skip invalid record and continue
+          const shipmentId = tmsShipment.sgl?.header?.sglShipmentNo || 'UNKNOWN';
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          validationErrors.push(`Shipment ${shipmentId}: ${errorMsg}`);
+          console.warn(`[TMS Adapter] Skipping invalid shipment record: ${errorMsg}`);
+        }
       }
 
-      return { success: true, message: 'TMS data loaded successfully' };
+      const message = validationErrors.length > 0
+        ? `TMS data loaded with ${validationErrors.length} invalid record(s) skipped`
+        : 'TMS data loaded successfully';
+
+      return { success: true, message };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
@@ -81,14 +117,24 @@ export class TMSJsonAdapter implements IShipmentDataAdapter {
   }
 
   private mapToShipment(tmsShipment: TMSShipmentJSON): Shipment {
-    const containers: Container[] = tmsShipment.sgl.containers.map(c => ({
+    // Validate external data before mapping to domain
+    const validationResult = TMSShipmentSchema.safeParse(tmsShipment);
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(`TMS data validation failed: ${errors}`);
+    }
+
+    const validated = validationResult.data;
+
+    const containers: Container[] = validated.sgl.containers.map(c => ({
       containerNumber: c.containerNo
     }));
 
     return {
-      shipmentId: tmsShipment.sgl.header.sglShipmentNo,
-      customerName: tmsShipment.sgl.parties.customer.name,
-      shipperName: tmsShipment.sgl.parties.shipper.name,
+      shipmentId: validated.sgl.header.sglShipmentNo,
+      customerName: validated.sgl.parties.customer.name,
+      shipperName: validated.sgl.parties.shipper.name,
       containers
     };
   }

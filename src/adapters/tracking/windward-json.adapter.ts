@@ -1,5 +1,6 @@
 import { readFile } from 'fs/promises';
 import { inject, injectable } from 'tsyringe';
+import { z } from 'zod';
 import { GeoLocation, Tracking } from '../../types/domain.types';
 import { Result } from '../../types/result.types';
 import { ITrackingDataAdapter } from './tracking-adapter.interface';
@@ -33,6 +34,26 @@ interface WindwardShipmentJSON {
     }>;
   };
 }
+
+// Zod schema for validating Windward shipment data
+const WindwardShipmentSchema = z.object({
+  containerNumber: z.string().min(1, 'Container number cannot be empty'),
+  scac: z.string().min(2).max(4, 'SCAC must be 2-4 characters'),
+  initialCarrierETA: z.string().datetime('Invalid ISO 8601 date for initialCarrierETA'),
+  status: z.object({
+    actualArrivalAt: z.string().datetime('Invalid ISO 8601 date for actualArrivalAt').optional(),
+    delay: z.object({
+      reasons: z.array(z.object({
+        delayReasonDescription: z.string()
+      }))
+    }).optional()
+  }),
+  destinationPort: z.object({
+    lat: z.number().min(-90).max(90, 'Latitude must be between -90 and 90'),
+    lon: z.number().min(-180).max(180, 'Longitude must be between -180 and 180'),
+    name: z.string()
+  }).optional()
+});
 
 @injectable()
 export class WindwardJsonAdapter implements ITrackingDataAdapter {
@@ -74,15 +95,28 @@ export class WindwardJsonAdapter implements ITrackingDataAdapter {
       const windwardData: WindwardShipmentJSON[] = JSON.parse(fileContent);
 
       this.trackingCache = new Map();
+      const validationErrors: string[] = [];
 
       for (const windwardShipment of windwardData) {
         for (const shipmentData of windwardShipment.trackedShipments.data) {
-          const tracking = this.mapToTracking(shipmentData.shipment);
-          this.trackingCache.set(tracking.containerNumber, tracking);
+          try {
+            const tracking = this.mapToTracking(shipmentData.shipment);
+            this.trackingCache.set(tracking.containerNumber, tracking);
+          } catch (error) {
+            // Log but don't fail entire load - skip invalid record and continue
+            const containerNo = shipmentData.shipment.containerNumber || 'UNKNOWN';
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            validationErrors.push(`Container ${containerNo}: ${errorMsg}`);
+            console.warn(`[Windward Adapter] Skipping invalid tracking record: ${errorMsg}`);
+          }
         }
       }
 
-      return { success: true, message: 'Windward tracking data loaded successfully' };
+      const message = validationErrors.length > 0
+        ? `Windward tracking data loaded with ${validationErrors.length} invalid record(s) skipped`
+        : 'Windward tracking data loaded successfully';
+
+      return { success: true, message };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
@@ -93,24 +127,34 @@ export class WindwardJsonAdapter implements ITrackingDataAdapter {
   }
 
   private mapToTracking(windwardShipment: WindwardShipmentJSON['trackedShipments']['data'][0]['shipment']): Tracking {
-    const delayReasons = windwardShipment.status.delay?.reasons.map(
+    // Validate external data before mapping to domain
+    const validationResult = WindwardShipmentSchema.safeParse(windwardShipment);
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(`Windward data validation failed: ${errors}`);
+    }
+
+    const validated = validationResult.data;
+
+    const delayReasons = validated.status.delay?.reasons.map(
       r => r.delayReasonDescription
     ) || [];
 
-    const destinationPort: GeoLocation | undefined = windwardShipment.destinationPort
+    const destinationPort: GeoLocation | undefined = validated.destinationPort
       ? {
-          latitude: windwardShipment.destinationPort.lat,
-          longitude: windwardShipment.destinationPort.lon,
-          name: windwardShipment.destinationPort.name
+          latitude: validated.destinationPort.lat,
+          longitude: validated.destinationPort.lon,
+          name: validated.destinationPort.name
         }
       : undefined;
 
     return {
-      containerNumber: windwardShipment.containerNumber,
-      scac: windwardShipment.scac,
-      estimatedArrival: new Date(windwardShipment.initialCarrierETA),
-      actualArrival: windwardShipment.status.actualArrivalAt
-        ? new Date(windwardShipment.status.actualArrivalAt)
+      containerNumber: validated.containerNumber,
+      scac: validated.scac,
+      estimatedArrival: new Date(validated.initialCarrierETA),
+      actualArrival: validated.status.actualArrivalAt
+        ? new Date(validated.status.actualArrivalAt)
         : undefined,
       delayReasons,
       destinationPort

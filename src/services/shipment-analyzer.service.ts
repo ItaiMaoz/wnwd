@@ -3,7 +3,7 @@ import { IShipmentDataAdapter } from '../adapters/shipment/shipment-adapter.inte
 import { ITrackingDataAdapter } from '../adapters/tracking/tracking-adapter.interface';
 import { IWeatherProvider } from '../adapters/weather/weather-provider.interface';
 import { Tracking } from '../types/domain.types';
-import { ShipmentAnalysisError, ShipmentAnalysisRecord, WeatherFetchStatus } from '../types/result.types';
+import { isFailure, isNotFound, isSuccess, isWeatherSuccess, ShipmentAnalysisError, ShipmentAnalysisRecord, WeatherFetchStatus } from '../types/result.types';
 import { IDelayAnalyzer } from './delay-analyzer.interface';
 import { IShipmentAnalyzer, ShipmentAnalysisResult } from './shipment-analyzer.interface';
 
@@ -26,26 +26,18 @@ export class ShipmentAnalyzerService implements IShipmentAnalyzer {
     for (const shipmentId of shipmentIds) {
       const shipmentResult = await this.shipmentAdapter.getShipmentById(shipmentId);
 
-      if (!shipmentResult.success) {
+      if (!isSuccess(shipmentResult)) {
+        const errorType = isFailure(shipmentResult) ? 'SHIPMENT_FETCH_ERROR' : 'SHIPMENT_NOT_FOUND';
         errors.push({
           containerNumber: shipmentId,
-          errorType: 'SHIPMENT_FETCH_ERROR',
+          errorType,
           message: shipmentResult.message
         });
         records.push(this.buildErrorRecord(shipmentId));
         continue;
       }
 
-      if (!shipmentResult.data) {
-        errors.push({
-          containerNumber: shipmentId,
-          errorType: 'SHIPMENT_NOT_FOUND',
-          message: shipmentResult.message
-        });
-        records.push(this.buildErrorRecord(shipmentId));
-        continue;
-      }
-
+      // TypeScript knows: shipmentResult has data
       const shipment = shipmentResult.data;
 
       for (const container of shipment.containers) {
@@ -54,13 +46,13 @@ export class ShipmentAnalyzerService implements IShipmentAnalyzer {
         );
 
         let tracking: Tracking | undefined;
-        if (!trackingResult.success) {
+        if (isFailure(trackingResult)) {
           errors.push({
             containerNumber: container.containerNumber,
             errorType: 'TRACKING_FETCH_ERROR',
             message: trackingResult.message
           });
-        } else {
+        } else if (isSuccess(trackingResult)) {
           tracking = trackingResult.data;
         }
 
@@ -78,10 +70,7 @@ export class ShipmentAnalyzerService implements IShipmentAnalyzer {
             errors
           );
 
-          if (
-            weatherResult.status === WeatherFetchStatus.SUCCESS &&
-            weatherResult.data
-          ) {
+          if (isWeatherSuccess(weatherResult)) {
             record.temperature = weatherResult.data.temperature;
             record.windSpeed = weatherResult.data.windSpeed;
           }
@@ -102,7 +91,7 @@ export class ShipmentAnalyzerService implements IShipmentAnalyzer {
       customerName: '',
       shipperName: '',
       containerNumber: '',
-      lastUpdated: ''  // Will be set by caller
+      lastUpdated: new Date().toISOString()
     };
   }
 
@@ -117,10 +106,10 @@ export class ShipmentAnalyzerService implements IShipmentAnalyzer {
       shipperName: shipment.shipperName,
       containerNumber,
       scac: tracking?.scac,
-      initialCarrierETA: tracking?.estimatedArrival.toISOString(),
+      initialCarrierETA: tracking?.estimatedArrival?.toISOString(),
       actualArrivalAt: tracking?.actualArrival?.toISOString(),
-      delayReasons: tracking?.delayReasons.join('; '),
-      lastUpdated: ''  // Will be set by caller
+      delayReasons: tracking?.delayReasons?.join('; '),
+      lastUpdated: new Date().toISOString()
     };
   }
 
@@ -189,12 +178,12 @@ export class ShipmentAnalyzerService implements IShipmentAnalyzer {
     tracking: Tracking,
     containerNumber: string,
     errors: ShipmentAnalysisError[]
-  ) {
+  ): Promise<import('../types/result.types').WeatherResult> {
     if (!tracking.destinationPort || !tracking.actualArrival) {
       return {
         status: WeatherFetchStatus.NO_DATA_AVAILABLE,
         error: 'Missing port location or arrival date'
-      };
+      } as const;
     }
 
     try {
@@ -215,7 +204,7 @@ export class ShipmentAnalyzerService implements IShipmentAnalyzer {
       return {
         status: WeatherFetchStatus.FATAL_ERROR,
         error: errorMessage
-      };
+      } as const;
     }
   }
 }

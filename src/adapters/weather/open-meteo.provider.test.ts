@@ -1,7 +1,9 @@
 import 'reflect-metadata';
 import { OpenMeteoWeatherProvider } from './open-meteo.provider';
 import { AppConfig } from '../../config/app.config';
-import { WeatherFetchStatus } from '../../types/result.types';
+import { WeatherFetchStatus, WeatherResult, isWeatherSuccess, hasWeatherError, isWeatherNoData } from '../../types/result.types';
+
+
 
 // Mock global fetch
 global.fetch = jest.fn();
@@ -71,12 +73,12 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns success with converted wind speed (km/h → m/s)
       expect(result.status).toBe(WeatherFetchStatus.SUCCESS);
-      expect(result.data).toEqual({
+      expect(isWeatherSuccess(result) && result.data).toEqual({
         temperature: 24.6,
         windSpeed: 3.0, // 10.8 km/h / 3.6 = 3.0 m/s
         windDirection: 240
       });
-      expect(result.error).toBeUndefined();
+      expect(hasWeatherError(result)).toBe(false);
     });
 
     // Test: Wind speed conversion accuracy
@@ -111,7 +113,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Wind speed accurately converted
       expect(result.status).toBe(WeatherFetchStatus.SUCCESS);
-      expect(result.data?.windSpeed).toBe(4.0); // 14.4 / 3.6 = 4.0
+      expect(isWeatherSuccess(result) && result.data?.windSpeed).toBe(4.0); // 14.4 / 3.6 = 4.0
     });
 
     // Test: Finds correct hour when multiple hours available
@@ -151,8 +153,8 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns data for 14:00 hour (closest)
       expect(result.status).toBe(WeatherFetchStatus.SUCCESS);
-      expect(result.data?.temperature).toBe(22.0);
-      expect(result.data?.windSpeed).toBe(3.3); // 12.0 km/h / 3.6
+      expect(isWeatherSuccess(result) && result.data?.temperature).toBe(22.0);
+      expect(isWeatherSuccess(result) && result.data?.windSpeed).toBe(3.3); // 12.0 km/h / 3.6
     });
   });
 
@@ -168,7 +170,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Rejects without calling fetch
       expect(result.status).toBe(WeatherFetchStatus.NO_DATA_AVAILABLE);
-      expect(result.error).toContain('future');
+      expect(isWeatherNoData(result) && result.error).toContain('future');
       expect(global.fetch).not.toHaveBeenCalled();
     });
   });
@@ -201,7 +203,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns NO_DATA_AVAILABLE
       expect(result.status).toBe(WeatherFetchStatus.NO_DATA_AVAILABLE);
-      expect(result.error).toContain('No hourly data');
+      expect(isWeatherNoData(result) && result.error).toContain('No hourly data');
     });
 
     // Test: Null temperature value
@@ -236,7 +238,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns NO_DATA_AVAILABLE with specific error
       expect(result.status).toBe(WeatherFetchStatus.NO_DATA_AVAILABLE);
-      expect(result.error).toContain('Temperature data is null');
+      expect(isWeatherNoData(result) && result.error).toContain('Temperature data is null');
     });
 
     // Test: Null wind speed value
@@ -271,7 +273,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns NO_DATA_AVAILABLE with specific error
       expect(result.status).toBe(WeatherFetchStatus.NO_DATA_AVAILABLE);
-      expect(result.error).toContain('Wind speed data is null');
+      expect(isWeatherNoData(result) && result.error).toContain('Wind speed data is null');
     });
 
     // Test: Requested hour not in response
@@ -306,7 +308,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns NO_DATA_AVAILABLE
       expect(result.status).toBe(WeatherFetchStatus.NO_DATA_AVAILABLE);
-      expect(result.error).toContain('No data found for hour 14:00');
+      expect(isWeatherNoData(result) && result.error).toContain('No data found for hour 14:00');
     });
   });
 
@@ -327,7 +329,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns FATAL_ERROR (non-retryable)
       expect(result.status).toBe(WeatherFetchStatus.FATAL_ERROR);
-      expect(result.error).toContain('HTTP 400');
+      expect(hasWeatherError(result) && result.error).toContain('HTTP 400');
       expect(global.fetch).toHaveBeenCalledTimes(1); // No retries
     });
 
@@ -347,7 +349,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns FATAL_ERROR
       expect(result.status).toBe(WeatherFetchStatus.FATAL_ERROR);
-      expect(result.error).toContain('HTTP 404');
+      expect(hasWeatherError(result) && result.error).toContain('HTTP 404');
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
   });
@@ -391,7 +393,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Eventually succeeds after retry
       expect(result.status).toBe(WeatherFetchStatus.SUCCESS);
-      expect(result.data?.temperature).toBe(25.0);
+      expect(isWeatherSuccess(result) && result.data?.temperature).toBe(25.0);
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
 
@@ -452,7 +454,7 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns RETRY_EXHAUSTED after all attempts
       expect(result.status).toBe(WeatherFetchStatus.RETRY_EXHAUSTED);
-      expect(result.error).toContain('Failed to fetch weather data after');
+      expect(hasWeatherError(result) && result.error).toContain('Failed to fetch weather data after');
       expect(global.fetch).toHaveBeenCalledTimes(4); // 1 initial + 3 retries
     });
   });
@@ -529,9 +531,9 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Returns success with undefined wind direction
       expect(result.status).toBe(WeatherFetchStatus.SUCCESS);
-      expect(result.data?.temperature).toBe(25.0);
-      expect(result.data?.windSpeed).toBe(3.0);
-      expect(result.data?.windDirection).toBeUndefined();
+      expect(isWeatherSuccess(result) && result.data?.temperature).toBe(25.0);
+      expect(isWeatherSuccess(result) && result.data?.windSpeed).toBe(3.0);
+      expect(isWeatherSuccess(result) && result.data?.windDirection).toBeUndefined();
     });
 
     // Test: Decimal precision maintained
@@ -566,8 +568,8 @@ describe('OpenMeteoWeatherProvider', () => {
 
       // Assert: Values rounded to 1 decimal place
       expect(result.status).toBe(WeatherFetchStatus.SUCCESS);
-      expect(result.data?.temperature).toBe(24.6); // 24.567 rounded
-      expect(result.data?.windSpeed).toBe(3.0); // 10.789 / 3.6 = 2.997... rounded to 3.0
+      expect(isWeatherSuccess(result) && result.data?.temperature).toBe(24.6); // 24.567 rounded
+      expect(isWeatherSuccess(result) && result.data?.windSpeed).toBe(3.0); // 10.789 / 3.6 = 2.997... rounded to 3.0
     });
   });
 });

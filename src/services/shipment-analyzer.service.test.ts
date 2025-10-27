@@ -364,7 +364,6 @@ describe('ShipmentAnalyzerService - Integration Tests', () => {
 
       mockTrackingAdapter.getTrackingByContainer.mockResolvedValue({
         success: true,
-        data: undefined,
         message: 'Tracking not found for MISSING_TRACKING'
       });
 
@@ -626,7 +625,6 @@ describe('ShipmentAnalyzerService - Integration Tests', () => {
       // Arrange: Shipment doesn't exist
       mockShipmentAdapter.getShipmentById.mockResolvedValue({
         success: true,
-        data: undefined,
         message: 'Shipment not found for ID: NONEXISTENT'
       });
 
@@ -640,7 +638,7 @@ describe('ShipmentAnalyzerService - Integration Tests', () => {
         customerName: '',
         shipperName: '',
         containerNumber: '',
-        lastUpdated: ''
+        lastUpdated: expect.any(String)
       });
       expect(result.errors).toHaveLength(1);
 
@@ -671,7 +669,7 @@ describe('ShipmentAnalyzerService - Integration Tests', () => {
         customerName: '',
         shipperName: '',
         containerNumber: '',
-        lastUpdated: ''
+        lastUpdated: expect.any(String)
       });
       expect(result.errors).toHaveLength(1);
 
@@ -705,7 +703,6 @@ describe('ShipmentAnalyzerService - Integration Tests', () => {
         })
         .mockResolvedValueOnce({
           success: true,
-          data: undefined,
           message: 'Shipment not found for ID: MISSING002'
         });
 
@@ -719,14 +716,14 @@ describe('ShipmentAnalyzerService - Integration Tests', () => {
         customerName: '',
         shipperName: '',
         containerNumber: '',
-        lastUpdated: ''
+        lastUpdated: expect.any(String)
       });
       expect(result.records[1]).toEqual({
         sglShipmentNo: 'MISSING002',
         customerName: '',
         shipperName: '',
         containerNumber: '',
-        lastUpdated: ''
+        lastUpdated: expect.any(String)
       });
       expect(result.errors).toHaveLength(2);
 

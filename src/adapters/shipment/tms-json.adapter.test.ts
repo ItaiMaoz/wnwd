@@ -1,11 +1,13 @@
 import 'reflect-metadata';
 import { readFile } from 'fs/promises';
+import { isSuccess } from '../../types/result.types';
 import { TMSJsonAdapter } from './tms-json.adapter';
 
 // Mock fs/promises module
 jest.mock('fs/promises', () => ({
   readFile: jest.fn()
 }));
+
 
 describe('TMSJsonAdapter', () => {
   const mockDataPath = '/fake/path/tms-data.json';
@@ -39,7 +41,7 @@ describe('TMSJsonAdapter', () => {
 
       // Assert: Returns success with correct domain mapping
       expect(result.success).toBe(true);
-      expect(result.data).toEqual({
+      expect(isSuccess(result) && result.data).toEqual({
         shipmentId: 'TMS0001',
         customerName: 'Alpha Co',
         shipperName: 'Zeta Ltd',
@@ -72,8 +74,8 @@ describe('TMSJsonAdapter', () => {
 
       // Assert: All containers present with only containerNumber
       expect(result.success).toBe(true);
-      expect(result.data?.containers).toHaveLength(3);
-      expect(result.data?.containers).toEqual([
+      expect(isSuccess(result) && result.data?.containers).toHaveLength(3);
+      expect(isSuccess(result) && result.data?.containers).toEqual([
         { containerNumber: 'CONT001' },
         { containerNumber: 'CONT002' },
         { containerNumber: 'CONT003' }
@@ -100,7 +102,7 @@ describe('TMSJsonAdapter', () => {
 
       // Assert: Success with empty containers
       expect(result.success).toBe(true);
-      expect(result.data?.containers).toEqual([]);
+      expect(isSuccess(result) && result.data?.containers).toEqual([]);
     });
 
     // Test: Non-existent shipment returns success with no data
@@ -123,7 +125,7 @@ describe('TMSJsonAdapter', () => {
 
       // Assert: Success without data
       expect(result.success).toBe(true);
-      expect(result.data).toBeUndefined();
+      expect(isSuccess(result)).toBe(false);
       expect(result.message).toContain('not found');
       expect(result.message).toContain('NONEXISTENT');
     });
@@ -138,7 +140,7 @@ describe('TMSJsonAdapter', () => {
 
       // Assert: Success, not found
       expect(result.success).toBe(true);
-      expect(result.data).toBeUndefined();
+      expect(isSuccess(result)).toBe(false);
       expect(result.message).toContain('not found');
     });
 
@@ -184,9 +186,9 @@ describe('TMSJsonAdapter', () => {
 
       // Assert: Returns correct shipment
       expect(result.success).toBe(true);
-      expect(result.data?.shipmentId).toBe('TMS0002');
-      expect(result.data?.customerName).toBe('Customer2');
-      expect(result.data?.containers).toEqual([{ containerNumber: 'CONT002' }]);
+      expect(isSuccess(result) && result.data?.shipmentId).toBe('TMS0002');
+      expect(isSuccess(result) && result.data?.customerName).toBe('Customer2');
+      expect(isSuccess(result) && result.data?.containers).toEqual([{ containerNumber: 'CONT002' }]);
     });
 
     // Test: File read error returns failure
@@ -199,7 +201,7 @@ describe('TMSJsonAdapter', () => {
 
       // Assert: Failure with error message
       expect(result.success).toBe(false);
-      expect(result.data).toBeUndefined();
+      expect(isSuccess(result)).toBe(false);
       expect(result.message).toContain('Failed to load TMS data');
       expect(result.message).toContain('ENOENT');
     });
@@ -214,7 +216,7 @@ describe('TMSJsonAdapter', () => {
 
       // Assert: Failure with parse error
       expect(result.success).toBe(false);
-      expect(result.data).toBeUndefined();
+      expect(isSuccess(result)).toBe(false);
       expect(result.message).toContain('Failed to load TMS data');
     });
   });

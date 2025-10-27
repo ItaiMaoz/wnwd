@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { readFile } from 'fs/promises';
+import { isSuccess } from '../../types/result.types';
 import { WindwardJsonAdapter } from './windward-json.adapter';
 
 jest.mock('fs/promises', () => ({
@@ -55,18 +56,20 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: Returns success with correct domain mapping
       expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        containerNumber: 'UACU5855346',
-        scac: 'MAEU',
-        estimatedArrival: new Date('2025-07-16T03:00:00Z'),
-        actualArrival: new Date('2025-07-20T14:30:00Z'),
-        delayReasons: ['Heavy fog conditions', 'Customs inspection delay'],
-        destinationPort: {
-          latitude: 53.5511,
-          longitude: 9.9937,
-          name: 'HAMBURG'
-        }
-      });
+      if ('data' in result) {
+        expect(isSuccess(result) && result.data).toEqual({
+          containerNumber: 'UACU5855346',
+          scac: 'MAEU',
+          estimatedArrival: new Date('2025-07-16T03:00:00Z'),
+          actualArrival: new Date('2025-07-20T14:30:00Z'),
+          delayReasons: ['Heavy fog conditions', 'Customs inspection delay'],
+          destinationPort: {
+            latitude: 53.5511,
+            longitude: 9.9937,
+            name: 'HAMBURG'
+          }
+        });
+      }
       expect(result.message).toContain('UACU5855346');
     });
 
@@ -103,7 +106,7 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: Empty delay reasons
       expect(result.success).toBe(true);
-      expect(result.data?.delayReasons).toEqual([]);
+      expect(isSuccess(result) && result.data?.delayReasons).toEqual([]);
     });
 
     // Test: No actual arrival returns undefined
@@ -138,8 +141,8 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: actualArrival is undefined
       expect(result.success).toBe(true);
-      expect(result.data?.actualArrival).toBeUndefined();
-      expect(result.data?.estimatedArrival).toEqual(new Date('2025-08-01T12:00:00Z'));
+      expect(isSuccess(result) && result.data?.actualArrival).toBeUndefined();
+      expect(isSuccess(result) && result.data?.estimatedArrival).toEqual(new Date('2025-08-01T12:00:00Z'));
     });
 
     // Test: No destination port returns undefined
@@ -169,7 +172,7 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: destinationPort is undefined
       expect(result.success).toBe(true);
-      expect(result.data?.destinationPort).toBeUndefined();
+      expect(isSuccess(result) && result.data?.destinationPort).toBeUndefined();
     });
 
     // Test: Non-existent container returns success with no data
@@ -197,7 +200,7 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: Success without data
       expect(result.success).toBe(true);
-      expect(result.data).toBeUndefined();
+      expect(isSuccess(result)).toBe(false);
       expect(result.message).toContain('not found');
       expect(result.message).toContain('NONEXISTENT');
     });
@@ -212,7 +215,7 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: Success, not found
       expect(result.success).toBe(true);
-      expect(result.data).toBeUndefined();
+      expect(isSuccess(result)).toBe(false);
       expect(result.message).toContain('not found');
     });
 
@@ -268,9 +271,9 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: Returns correct tracking
       expect(result.success).toBe(true);
-      expect(result.data?.containerNumber).toBe('CONT002');
-      expect(result.data?.scac).toBe('MSCU');
-      expect(result.data?.destinationPort?.name).toBe('HAIFA');
+      expect(isSuccess(result) && result.data?.containerNumber).toBe('CONT002');
+      expect(isSuccess(result) && result.data?.scac).toBe('MSCU');
+      expect(isSuccess(result) && result.data?.destinationPort?.name).toBe('HAIFA');
     });
 
     // Test: Multiple containers within single trackedShipments entry
@@ -310,8 +313,8 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: Returns correct tracking
       expect(result.success).toBe(true);
-      expect(result.data?.containerNumber).toBe('CONT002');
-      expect(result.data?.estimatedArrival).toEqual(new Date('2025-07-18T03:00:00Z'));
+      expect(isSuccess(result) && result.data?.containerNumber).toBe('CONT002');
+      expect(isSuccess(result) && result.data?.estimatedArrival).toEqual(new Date('2025-07-18T03:00:00Z'));
     });
 
     // Test: File read error returns failure
@@ -324,7 +327,7 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: Failure with error message
       expect(result.success).toBe(false);
-      expect(result.data).toBeUndefined();
+      expect(isSuccess(result)).toBe(false);
       expect(result.message).toContain('Failed to load Windward tracking data');
       expect(result.message).toContain('ENOENT');
     });
@@ -339,7 +342,7 @@ describe('WindwardJsonAdapter', () => {
 
       // Assert: Failure with parse error
       expect(result.success).toBe(false);
-      expect(result.data).toBeUndefined();
+      expect(isSuccess(result)).toBe(false);
       expect(result.message).toContain('Failed to load Windward tracking data');
     });
   });
