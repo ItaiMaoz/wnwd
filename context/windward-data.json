@@ -1,0 +1,151 @@
+[
+  {
+    "trackedShipments": {
+      "count": 1,
+      "data": [
+        {
+          "shipment": {
+            "containerNumber": "UACU5855346",
+            "scac": "MAEU",
+            "carrierBookingReference": "MAE9876546",
+            "initialCarrierETA": "2025-07-16T03:00:00Z",
+            "initialCarrierETD": "2025-07-01T10:00:00Z",
+            "status": {
+              "actualArrivalAt": "2025-07-20T14:30:00Z",
+              "actualDepartureAt": "2025-07-01T12:15:00Z",
+              "delay": {
+                "reasons": [
+                  {
+                    "delayReasonDescription": "Due to heavy fog conditions, visibility was significantly limited"
+                  },
+                  {
+                    "delayReasonDescription": "Customs inspection delay"
+                  }
+                ]
+              }
+            },
+            "destinationPort": {
+              "name": "HAMBURG",
+              "lon": 9.9937,
+              "lat": 53.5511
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "trackedShipments": {
+      "count": 1,
+      "data": [
+        {
+          "shipment": {
+            "containerNumber": "FFAU2384633",
+            "scac": "MSCU",
+            "carrierBookingReference": null,
+            "initialCarrierETA": "2025-08-01T12:00:00Z",
+            "initialCarrierETD": "2025-07-13T11:00:00Z",
+            "status": {
+              "actualArrivalAt": "2025-08-01T15:00:00Z",
+              "actualDepartureAt": "2025-07-13T14:00:00Z",
+              "delay": {
+                "reasons": [
+                  {
+                    "delayReasonDescription": "The vessel experienced a strong thunderstorm, causing significant deviation"
+                  }
+                ]
+              }
+            },
+            "destinationPort": {
+              "name": "HAIFA",
+              "lon": 34.9896,
+              "lat": 32.8167
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "trackedShipments": {
+      "count": 1,
+      "data": [
+        {
+          "shipment": {
+            "containerNumber": "NYKU7778881",
+            "scac": "ONEU",
+            "carrierBookingReference": "ONE111222",
+            "initialCarrierETA": "2025-07-25T14:30:00Z",
+            "initialCarrierETD": "2025-07-02T10:00:00Z",
+            "status": {
+              "actualArrivalAt": "2025-07-25T17:45:00Z",
+              "actualDepartureAt": "2025-07-02T12:15:00Z",
+              "delay": {
+                "reasons": [
+                  {
+                    "delayReasonDescription": "Port congestion led to extended waiting time"
+                  }
+                ]
+              }
+            },
+            "destinationPort": {
+              "name": "LOS ANGELES",
+              "lon": -118.2437,
+              "lat": 34.0522
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "trackedShipments": {
+      "count": 1,
+      "data": [
+        {
+          "shipment": {
+            "containerNumber": "TEMU1234567",
+            "scac": "HLCU",
+            "carrierBookingReference": "HLC445566",
+            "initialCarrierETA": "2025-07-02T10:30:00Z",
+            "initialCarrierETD": "2025-06-28T12:00:00Z",
+            "status": {
+              "actualArrivalAt": "2025-07-02T10:30:00Z",
+              "actualDepartureAt": "2025-06-28T12:00:00Z"
+            },
+            "destinationPort": {
+              "name": "ROTTERDAM",
+              "lon": 4.47917,
+              "lat": 51.9225
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "trackedShipments": {
+      "count": 1,
+      "data": [
+        {
+          "shipment": {
+            "containerNumber": "ZZZZ0000000",
+            "scac": "MSCX",
+            "carrierBookingReference": null,
+            "initialCarrierETA": "2025-07-22T17:45:00Z",
+            "initialCarrierETD": "2025-07-10T10:00:00Z",
+            "status": {
+              "actualArrivalAt": "2025-07-22T17:45:00Z",
+              "actualDepartureAt": "2025-07-10T12:00:00Z"
+            },
+            "destinationPort": {
+              "name": "NEW YORK",
+              "lon": -74.0060,
+              "lat": 40.7128
+            }
+          }
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,11 @@
+sglShipmentNo,customerName,shipperName,containerNumber,scac,initialCarrierETA,actualArrivalAt,delayReasons,temperature,windSpeed,weatherFetchStatus,lastUpdated,error
+TMS0001,Alpha Co,Zeta Ltd,UACU5855346,MAEU,2025-07-16T03:00:00.000Z,2025-07-20T14:30:00.000Z,"Due to heavy fog conditions, visibility was significantly limited; Customs inspection delay",24.6,3,SUCCESS,2025-10-27T16:57:18.377Z,
+TMS0002,Beta Ltd,Sigma Ltd,FFAU2384633,MSCU,2025-08-01T12:00:00.000Z,2025-08-01T15:00:00.000Z,"The vessel experienced a strong thunderstorm, causing significant deviation",28.9,4,SUCCESS,2025-10-27T16:57:18.377Z,
+TMS0003,Gamma Corp,Nu Delta,NYKU7778881,ONEU,2025-07-25T14:30:00.000Z,2025-07-25T17:45:00.000Z,Port congestion led to extended waiting time,,,,2025-10-27T16:57:18.377Z,
+TMS0004,Delta Partners,Epsilon BV,TEMU1234567,HLCU,2025-07-02T10:30:00.000Z,2025-07-02T10:30:00.000Z,,,,,2025-10-27T16:57:18.377Z,
+TMS9999,Unrelated Co,Unrelated Shipper,ZZZZ0000000,MSCX,2025-07-22T17:45:00.000Z,2025-07-22T17:45:00.000Z,,,,,2025-10-27T16:57:18.377Z,
+TMS0010,,,,,,,,,,,2025-10-27T16:57:18.377Z,SHIPMENT_NOT_FOUND: Shipment TMS0010 not found in TMS system
+TMS0011,,,,,,,,,,,2025-10-27T16:57:18.377Z,SHIPMENT_NOT_FOUND: Shipment TMS0011 not found in TMS system
+TMS0012,,,,,,,,,,,2025-10-27T16:57:18.377Z,SHIPMENT_NOT_FOUND: Shipment TMS0012 not found in TMS system
+TMS0013,,,,,,,,,,,2025-10-27T16:57:18.377Z,SHIPMENT_NOT_FOUND: Shipment TMS0013 not found in TMS system
+TMS0014,,,,,,,,,,,2025-10-27T16:57:18.377Z,SHIPMENT_NOT_FOUND: Shipment TMS0014 not found in TMS system

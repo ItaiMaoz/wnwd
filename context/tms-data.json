@@ -1,0 +1,422 @@
+[
+  {
+    "sgl": {
+      "header": {
+        "sglShipmentNo": "TMS0001",
+        "houseNo": "TMS0001",
+        "masterNo": "MAEU123456",
+        "transportMode": "Ocean",
+        "shipmentType": "FCL",
+        "fileType": "2",
+        "fileNo": "CPH0001",
+        "linerBookingNo": null,
+        "shipmentService": "GENERAL",
+        "blType": "SWB",
+        "documentStatus": null,
+        "shipmentStatus": "Arrived",
+        "bookingCreated": "2025-07-01T00:00:00Z",
+        "shipmentCreated": "2025-07-01T00:00:00Z",
+        "termsOfDelivery": "FOB"
+      },
+      "parties": {
+        "consignee": {
+          "name": "Alpha Co",
+          "address": {
+            "city": "Berlin",
+            "countryName": "Germany"
+          }
+        },
+        "customer": {
+          "name": "Alpha Co",
+          "address": {
+            "city": "Berlin",
+            "countryName": "Germany"
+          }
+        },
+        "shipper": {
+          "name": "Zeta Ltd",
+          "address": {
+            "city": "Shanghai",
+            "countryName": "China"
+          }
+        }
+      },
+      "routing": {
+        "vesselFlight": "OOCL ASIA",
+        "carrier": "MAEU",
+        "originCode": "CNSHA",
+        "originName": "SHANGHAI",
+        "destinationCode": "DEHAM",
+        "destinationName": "HAMBURG"
+      },
+      "containers": [
+        {
+          "containerNo": "UACU5855346",
+          "containerType": "40HC"
+        }
+      ],
+      "milestones": {
+        "allEvents": [
+          {
+            "milestoneName": "LOADED ON VESSEL",
+            "containerNo": "UACU5855346",
+            "location": {
+              "actualName": "SHANGHAI"
+            },
+            "time": {
+              "actualUtc": "2025-07-01T10:00:00Z"
+            }
+          },
+          {
+            "milestoneName": "UNLOADED AT DESTINATION",
+            "containerNo": "UACU5855346",
+            "location": {
+              "actualName": "HAMBURG"
+            },
+            "time": {
+              "actualUtc": "2025-07-20T14:30:00Z"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sgl": {
+      "header": {
+        "sglShipmentNo": "TMS0002",
+        "houseNo": "TMS0002",
+        "masterNo": "MSCU987654",
+        "transportMode": "Ocean",
+        "shipmentType": "LCL",
+        "fileType": "2",
+        "fileNo": "CPH0002",
+        "linerBookingNo": null,
+        "shipmentService": "GENERAL",
+        "blType": "SWB",
+        "documentStatus": null,
+        "shipmentStatus": "In Transit",
+        "bookingCreated": "2025-07-05T00:00:00Z",
+        "shipmentCreated": "2025-07-05T00:00:00Z",
+        "termsOfDelivery": "CIF"
+      },
+      "parties": {
+        "consignee": {
+          "name": "Beta Ltd",
+          "address": {
+            "city": "Tel Aviv",
+            "countryName": "Israel"
+          }
+        },
+        "customer": {
+          "name": "Beta Ltd",
+          "address": {
+            "city": "Tel Aviv",
+            "countryName": "Israel"
+          }
+        },
+        "shipper": {
+          "name": "Sigma Ltd",
+          "address": {
+            "city": "Haifa",
+            "countryName": "Israel"
+          }
+        }
+      },
+      "routing": {
+        "vesselFlight": "MSC QUITTERIE",
+        "carrier": "MSCU",
+        "originCode": "CNSHA",
+        "originName": "SHANGHAI",
+        "destinationCode": "ILHFA",
+        "destinationName": "HAIFA"
+      },
+      "containers": [
+        {
+          "containerNo": "FFAU2384633",
+          "containerType": "40HC"
+        }
+      ],
+      "milestones": {
+        "allEvents": [
+          {
+            "milestoneName": "IN-GATE",
+            "containerNo": "FFAU2384633",
+            "location": {
+              "actualName": "SHANGHAI"
+            },
+            "time": {
+              "actualUtc": "2025-07-10T08:00:00Z"
+            }
+          },
+          {
+            "milestoneName": "LOADED ON VESSEL",
+            "containerNo": "FFAU2384633",
+            "location": {
+              "actualName": "SHANGHAI"
+            },
+            "time": {
+              "actualUtc": "2025-07-13T11:00:00Z"
+            }
+          },
+          {
+            "milestoneName": "ARRIVED",
+            "containerNo": "FFAU2384633",
+            "location": {
+              "actualName": "HAIFA"
+            },
+            "time": {
+              "actualUtc": "2025-08-01T15:00:00Z"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sgl": {
+      "header": {
+        "sglShipmentNo": "TMS0003",
+        "houseNo": "TMS0003",
+        "masterNo": "ONEU654321",
+        "transportMode": "Ocean",
+        "shipmentType": "FCL",
+        "fileType": "2",
+        "fileNo": "CPH0003",
+        "linerBookingNo": null,
+        "shipmentService": "GENERAL",
+        "blType": "SWB",
+        "documentStatus": null,
+        "shipmentStatus": "Delayed",
+        "bookingCreated": "2025-07-02T00:00:00Z",
+        "shipmentCreated": "2025-07-02T00:00:00Z",
+        "termsOfDelivery": "FOB"
+      },
+      "parties": {
+        "consignee": {
+          "name": "Gamma Corp",
+          "address": {
+            "city": "Los Angeles",
+            "countryName": "USA"
+          }
+        },
+        "customer": {
+          "name": "Gamma Corp",
+          "address": {
+            "city": "Los Angeles",
+            "countryName": "USA"
+          }
+        },
+        "shipper": {
+          "name": "Nu Delta",
+          "address": {
+            "city": "Busan",
+            "countryName": "South Korea"
+          }
+        }
+      },
+      "routing": {
+        "vesselFlight": "ONE DYNAMIC",
+        "carrier": "ONEU",
+        "originCode": "KRPUS",
+        "originName": "BUSAN",
+        "destinationCode": "USLAX",
+        "destinationName": "LOS ANGELES"
+      },
+      "containers": [
+        {
+          "containerNo": "NYKU7778881",
+          "containerType": "40GP"
+        }
+      ],
+      "milestones": {
+        "allEvents": [
+          {
+            "milestoneName": "LOADED ON VESSEL",
+            "containerNo": "NYKU7778881",
+            "location": {
+              "actualName": "BUSAN"
+            },
+            "time": {
+              "actualUtc": "2025-07-02T10:00:00Z"
+            }
+          },
+          {
+            "milestoneName": "ARRIVED",
+            "containerNo": "NYKU7778881",
+            "location": {
+              "actualName": "LOS ANGELES"
+            },
+            "time": {
+              "actualUtc": "2025-07-25T17:45:00Z"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sgl": {
+      "header": {
+        "sglShipmentNo": "TMS0004",
+        "houseNo": "TMS0004",
+        "masterNo": "HLCU876543",
+        "transportMode": "Ocean",
+        "shipmentType": "FCL",
+        "fileType": "2",
+        "fileNo": "CPH0004",
+        "linerBookingNo": null,
+        "shipmentService": "GENERAL",
+        "blType": "SWB",
+        "documentStatus": null,
+        "shipmentStatus": "Arrived",
+        "bookingCreated": "2025-06-27T00:00:00Z",
+        "shipmentCreated": "2025-06-27T00:00:00Z",
+        "termsOfDelivery": "CIF"
+      },
+      "parties": {
+        "consignee": {
+          "name": "Delta Partners",
+          "address": {
+            "city": "Rotterdam",
+            "countryName": "Netherlands"
+          }
+        },
+        "customer": {
+          "name": "Delta Partners",
+          "address": {
+            "city": "Rotterdam",
+            "countryName": "Netherlands"
+          }
+        },
+        "shipper": {
+          "name": "Epsilon BV",
+          "address": {
+            "city": "Rotterdam",
+            "countryName": "Netherlands"
+          }
+        }
+      },
+      "routing": {
+        "vesselFlight": "HLC QUANTUM",
+        "carrier": "HLCU",
+        "originCode": "NLRTM",
+        "originName": "ROTTERDAM",
+        "destinationCode": "NLRTM",
+        "destinationName": "ROTTERDAM"
+      },
+      "containers": [
+        {
+          "containerNo": "TEMU1234567",
+          "containerType": "20GP"
+        }
+      ],
+      "milestones": {
+        "allEvents": [
+          {
+            "milestoneName": "LOADED ON VESSEL",
+            "containerNo": "TEMU1234567",
+            "location": {
+              "actualName": "ROTTERDAM"
+            },
+            "time": {
+              "actualUtc": "2025-06-28T12:00:00Z"
+            }
+          },
+          {
+            "milestoneName": "ARRIVED",
+            "containerNo": "TEMU1234567",
+            "location": {
+              "actualName": "ROTTERDAM"
+            },
+            "time": {
+              "actualUtc": "2025-07-02T10:30:00Z"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sgl": {
+      "header": {
+        "sglShipmentNo": "TMS9999",
+        "houseNo": "TMS9999",
+        "masterNo": "XYZ123456",
+        "transportMode": "Ocean",
+        "shipmentType": "FCL",
+        "fileType": "2",
+        "fileNo": "CPH9999",
+        "linerBookingNo": null,
+        "shipmentService": "GENERAL",
+        "blType": "SWB",
+        "documentStatus": null,
+        "shipmentStatus": "Arrived",
+        "bookingCreated": "2025-07-10T00:00:00Z",
+        "shipmentCreated": "2025-07-10T00:00:00Z",
+        "termsOfDelivery": "FOB"
+      },
+      "parties": {
+        "consignee": {
+          "name": "Unrelated Co",
+          "address": {
+            "city": "London",
+            "countryName": "UK"
+          }
+        },
+        "customer": {
+          "name": "Unrelated Co",
+          "address": {
+            "city": "London",
+            "countryName": "UK"
+          }
+        },
+        "shipper": {
+          "name": "Unrelated Shipper",
+          "address": {
+            "city": "London",
+            "countryName": "UK"
+          }
+        }
+      },
+      "routing": {
+        "vesselFlight": "MSC AMERICA",
+        "carrier": "MSCX",
+        "originCode": "GBLON",
+        "originName": "LONDON",
+        "destinationCode": "USNYC",
+        "destinationName": "NEW YORK"
+      },
+      "containers": [
+        {
+          "containerNo": "ZZZZ0000000",
+          "containerType": "20GP"
+        }
+      ],
+      "milestones": {
+        "allEvents": [
+          {
+            "milestoneName": "LOADED ON VESSEL",
+            "containerNo": "ZZZZ0000000",
+            "location": {
+              "actualName": "LONDON"
+            },
+            "time": {
+              "actualUtc": "2025-07-10T10:00:00Z"
+            }
+          },
+          {
+            "milestoneName": "ARRIVED",
+            "containerNo": "ZZZZ0000000",
+            "location": {
+              "actualName": "NEW YORK"
+            },
+            "time": {
+              "actualUtc": "2025-07-22T17:45:00Z"
+            }
+          }
+        ]
+      }
+    }
+  }
+]
