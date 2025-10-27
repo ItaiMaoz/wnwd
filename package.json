@@ -8,6 +8,8 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "api": "ts-node src/api-server.ts",
+    "web": "cd web && npm run dev",
+    "start:all": "npm run api & cd web && npm run dev",
     "test": "jest",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist",
