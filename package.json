@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "api": "ts-node src/api-server.ts",
     "test": "jest",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist",
@@ -20,6 +21,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.4",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
@@ -32,9 +35,11 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "csv-parse": "^6.1.0",
     "csv-stringify": "^6.6.0",
     "dotenv": "^17.2.3",
+    "express": "^5.1.0",
     "openai": "^6.7.0",
     "reflect-metadata": "^0.2.1",
     "tsyringe": "^4.8.0",
